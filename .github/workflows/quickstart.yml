@@ -6,25 +6,25 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
+        name: [
+            macos-latest,
+            ubuntu-latest,
+            windows-2019-clang-cl-release
+        ]
         include:
-          - os: macos-latest
+          - name: macos-latest
             INSTALL_LLVM: brew install llvm
             ENV_VARS: LLVM_SYS_100_PREFIX="/usr/local/opt/llvm"
-          - os: ubuntu-latest
+          - name: ubuntu-latest
             INSTALL_LLVM: wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && sudo ./llvm.sh 10
             ENV_VARS: ~
-    runs-on: ${{ matrix.os }}
+          - name: windows-2019-clang-cl-release
+            cmake_build_type: Release
+            os: windows-2019
+            compiler: clang-cl
+
+    runs-on: ${{ matrix.name }}
     steps:
-# from https://github.com/KomodoPlatform/antara-gaming-sdk/blob/master/.github/workflows/build.yml#L161
-      - name: Install (Windows)
-        if: runner.os == 'Windows'
-        shell: powershell
-        run: |
-          curl -fsSL -o "LLVM-10.0.0-win64.exe" "https://github.com/llvm/llvm-project/releases/download/llvmorg-10.0.0/LLVM-10.0.0-win64.exe"
-          LLVM-10.0.0-win64.exe /S
-
-
       - uses: actions/checkout@v2
       - name: Checkout submodules
         shell: bash
@@ -32,6 +32,23 @@ jobs:
           auth_header="$(git config --local --get http.https://github.com/.extraheader)"
           git submodule sync --recursive
           git -c "http.extraheader=$auth_header" -c protocol.version=2 submodule update --init --force --recursive --depth=1
+
+      - name: Install (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          iex (new-object net.webclient).downloadstring('https://get.scoop.sh')
+          scoop install ninja llvm --global
+          vcpkg install curl:x64-Windows
+          if ("${{ matrix.compiler }}" -eq "clang") {
+            echo "::set-env name=CC::clang"
+            echo "::set-env name=CXX::clang++"
+          } else {
+            echo "::set-env name=CC::${{ matrix.compiler }}"
+            echo "::set-env name=CXX::${{ matrix.compiler }}"
+          }
+          & .github\workflows\vsenv.bat -arch=x64 -host_arch=x64
+
       - name: Install LLVM
         run: ${{matrix.INSTALL_LLVM}}
       - name: Get rust nightly
@@ -41,4 +58,4 @@ jobs:
       - name: Build
         run: ${{matrix.ENV_VARS}} cargo build --verbose --release
       - name: Run tests
-        run: ${{matrix.ENV_VARS}} cargo test --verbose
+        run: ${{matrix.ENV_VARS}} cargo test --verbose --all
