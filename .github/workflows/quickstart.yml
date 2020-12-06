@@ -4,26 +4,31 @@ on: [push]
 
 jobs:
   build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.name }}
+
     strategy:
       matrix:
         name: [
             macos-latest,
             ubuntu-latest,
-            windows-2019-clang-cl-release
+            windows-2019-clang
         ]
+
         include:
           - name: macos-latest
             INSTALL_LLVM: brew install llvm
             ENV_VARS: LLVM_SYS_100_PREFIX="/usr/local/opt/llvm"
+
           - name: ubuntu-latest
             INSTALL_LLVM: wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && sudo ./llvm.sh 10
             ENV_VARS: ~
-          - name: windows-2019-clang-cl-release
+
+          - name: windows-2019-clang
             cmake_build_type: Release
             os: windows-2019
             compiler: clang-cl
 
-    runs-on: ${{ matrix.name }}
     steps:
       - uses: actions/checkout@v2
       - name: Checkout submodules
