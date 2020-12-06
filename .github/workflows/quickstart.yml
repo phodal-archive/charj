@@ -7,7 +7,7 @@ jobs:
     strategy:
       matrix:
 #         os: [macos-latest, ubuntu-latest, windows-latest]
-        os: [macos-latest, ubuntu-latest]
+        os: [macos-latest, ubuntu-latest, windows-latest]
         include:
 #           - os: windows-latest
           - os: macos-latest
@@ -18,6 +18,23 @@ jobs:
             ENV_VARS: ~
     runs-on: ${{ matrix.os }}
     steps:
+# from https://github.com/KomodoPlatform/antara-gaming-sdk/blob/master/.github/workflows/build.yml#L161
+      - name: Install (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          iex (new-object net.webclient).downloadstring('https://get.scoop.sh')
+          scoop install ninja llvm --global
+          vcpkg install curl:x64-Windows
+          if ("${{ matrix.compiler }}" -eq "clang") {
+            echo "::set-env name=CC::clang"
+            echo "::set-env name=CXX::clang++"
+          } else {
+            echo "::set-env name=CC::${{ matrix.compiler }}"
+            echo "::set-env name=CXX::${{ matrix.compiler }}"
+          }
+          & .github\workflows\vsenv.bat -arch=x64 -host_arch=x64
+
       - uses: actions/checkout@v2
       - name: Checkout submodules
         shell: bash
