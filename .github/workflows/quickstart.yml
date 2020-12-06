@@ -6,10 +6,8 @@ jobs:
   build:
     strategy:
       matrix:
-#         os: [macos-latest, ubuntu-latest, windows-latest]
-        os: [macos-latest, ubuntu-latest, windows-latest]
+        os: [macos-latest, ubuntu-latest, windows-2019-clang-release]
         include:
-#           - os: windows-latest
           - os: macos-latest
             INSTALL_LLVM: brew install llvm
             ENV_VARS: LLVM_SYS_100_PREFIX="/usr/local/opt/llvm"
